@@ -558,29 +558,12 @@
             showStatus('Loading PDF and extracting chapters...');
             
             try {
-                // Verify staff password first by making a test sign request
-                const testResponse = await fetch(WORKER_URL + '/sign?' + new URLSearchParams({
+                // Load PDF through Worker's analyze proxy (avoids CORS)
+                const analyzeUrl = WORKER_URL + '/analyze?' + new URLSearchParams({
                     password: staffPassword,
-                    dropbox: dropboxUrl,
-                    start: '1',
-                    end: '1'
-                }));
-                
-                const testData = await testResponse.json();
-                
-                if (testData.error) {
-                    if (testData.error.includes('Unauthorized')) {
-                        showStatus('Invalid staff password. Please check and try again.', 'error');
-                        document.getElementById('staffPassword').focus();
-                    } else {
-                        showStatus(testData.error, 'error');
-                    }
-                    return;
-                }
-
-                // Load PDF directly from Dropbox for bookmark extraction
-                const directUrl = getDropboxDirectUrl(dropboxUrl);
-                const pdf = await pdfjsLib.getDocument({ url: directUrl }).promise;
+                    dropbox: dropboxUrl
+                });
+                const pdf = await pdfjsLib.getDocument({ url: analyzeUrl }).promise;
                 const totalPages = pdf.numPages;
                 
                 showStatus('Extracting bookmarks...');
