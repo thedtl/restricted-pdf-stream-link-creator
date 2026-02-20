@@ -136,12 +136,6 @@
             margin-bottom: 8px;
         }
 
-        .label-hint {
-            font-weight: 400;
-            color: var(--gray-500);
-            font-size: 13px;
-        }
-
         input[type="text"],
         input[type="password"] {
             width: 100%;
@@ -153,6 +147,11 @@
             transition: all 0.2s;
             font-family: inherit;
             background: white;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 97, 254, 0.1);
         }
 
         .btn {
@@ -167,9 +166,12 @@
             cursor: pointer;
             border: none;
             width: 100%;
+            transition: 0.2s;
         }
         .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
         .btn-success { background: var(--success); color: white; margin-top: 12px; }
+        .btn-success:hover { background: #059669; }
 
         .status-bar {
             padding: 16px 24px;
@@ -184,11 +186,19 @@
 
         .code-output {
             background: var(--gray-900);
-            color: #e5e7eb;
-            padding: 20px;
             border-radius: 8px;
+            padding: 20px;
             max-height: 400px;
             overflow-y: auto;
+        }
+
+        .code-output pre {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: #e5e7eb;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
         }
     </style>
 </head>
@@ -236,7 +246,7 @@
             <div class="status-bar" id="statusBar" style="display:none;"></div>
             <div class="card-body" id="resultsBody" style="display:none;">
                 <div class="code-output"><pre id="codeOutput"></pre></div>
-                <button class="btn btn-success" onclick="copyCode()">Copy to Clipboard</button>
+                <button class="btn btn-success" id="copyBtn" onclick="copyCode()">Copy to Clipboard</button>
             </div>
         </div>
     </main>
@@ -250,11 +260,21 @@
         let generatedCode = "";
 
         function showStatus(msg, type) {
+            const card = document.getElementById("resultsCard");
             const bar = document.getElementById("statusBar");
-            document.getElementById("resultsCard").style.display = "block";
-            bar.style.display = "flex";
-            bar.className = "status-bar " + (type || "");
-            bar.textContent = msg;
+            const body = document.getElementById("resultsBody");
+            
+            card.style.display = "block";
+            
+            if (type === "loading" || type === "error") {
+                bar.style.display = "flex";
+                bar.className = "status-bar " + type;
+                bar.textContent = type === "error" ? "❌ " + msg : "⏳ " + msg;
+                body.style.display = "none";
+            } else if (type === "success") {
+                bar.style.display = "none";
+                body.style.display = "block";
+            }
         }
 
         async function analyzePDF() {
@@ -274,39 +294,159 @@
 
             let dropboxDirectUrl;
             try {
-                // Convert the shared Dropbox link to a raw file URL
                 const urlObj = new URL(url);
-
-                // Change host for raw content
                 urlObj.host = urlObj.host.replace("www.dropbox.com", "dl.dropboxusercontent.com");
-
-                // Remove Dropbox UI parameters
                 urlObj.searchParams.delete("dl");
                 urlObj.searchParams.delete("rlkey");
-
                 dropboxDirectUrl = urlObj.toString();
             } catch (e) {
-                showStatus("Malformed URL","error");
+                showStatus("Malformed URL", "error");
                 return;
             }
 
-            showStatus("Fetching PDF…","loading");
+            showStatus("Fetching PDF & Extracting Chapters…", "loading");
+            
             try {
-                const pdf = await pdfjsLib.getDocument({url: WORKER_URL+"/analyze?"+new URLSearchParams({password:pwd,dropbox:directUrl})}).promise;
+                // Fetch the PDF via the Worker
+                const fetchUrl = WORKER_URL + "/analyze?" + new URLSearchParams({ 
+                    password: pwd, 
+                    dropbox: dropboxDirectUrl 
+                });
+                
+                const pdf = await pdfjsLib.getDocument({ url: fetchUrl }).promise;
+                const totalPages = pdf.numPages;
                 const outline = await pdf.getOutline();
-                showStatus("Outline parsed. (Not displayed)","loading");
-                generatedCode = "Generated!";
-                document.getElementById("codeOutput").textContent = generatedCode;
-                document.getElementById("resultsBody").style.display = "block";
-                showStatus("Done!");
+                
+                if (!outline || outline.length === 0) {
+                    showStatus("No bookmarks found in this PDF.", "error");
+                    return;
+                }
+
+                // Extract Chapters
+                const chapters = await extractChapters(pdf, outline, totalPages);
+                
+                if (chapters.length === 0) {
+                    showStatus("Could not extract chapter information.", "error");
+                    return;
+                }
+
+                // Generate Output
+                generateOutput(cit, chapters, pwd, dropboxDirectUrl);
+
             } catch (e) {
-                showStatus("Error loading PDF","error");
+                console.error(e);
+                showStatus("Error loading PDF: " + e.message, "error");
             }
         }
 
+        // --- Restored Logic for Chapters & HTML Generation ---
+
+        async function extractChapters(pdf, outline, totalPages) {
+            const chapters = [];
+            for (let i = 0; i < outline.length; i++) {
+                const item = outline[i];
+                const nextItem = outline[i + 1];
+                
+                try {
+                    let startPage = await getPageNumber(pdf, item);
+                    if (startPage === null) continue;
+                    
+                    let endPage;
+                    if (nextItem) {
+                        const nextStart = await getPageNumber(pdf, nextItem);
+                        endPage = nextStart !== null ? nextStart - 1 : totalPages;
+                    } else {
+                        endPage = totalPages;
+                    }
+                    
+                    if (endPage < startPage) endPage = startPage;
+                    
+                    chapters.push({
+                        title: item.title.trim(),
+                        start: startPage,
+                        end: endPage
+                    });
+                } catch (e) {
+                    console.warn('Could not process bookmark:', e);
+                }
+            }
+            return chapters;
+        }
+
+        async function getPageNumber(pdf, item) {
+            try {
+                let dest = item.dest;
+                if (typeof dest === 'string') dest = await pdf.getDestination(dest);
+                if (!dest || !Array.isArray(dest)) return null;
+                const pageIndex = await pdf.getPageIndex(dest[0]);
+                return pageIndex + 1;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function generateOutput(citation, chapters, pwd, dropboxUrl) {
+            let linksHtml = '';
+            
+            chapters.forEach((ch) => {
+                // Constructing the URL directly to the new worker endpoint
+                const workerStreamUrl = WORKER_URL + "?" + new URLSearchParams({
+                    password: pwd,
+                    dropbox: dropboxUrl,
+                    start: ch.start,
+                    end: ch.end
+                });
+                
+                const finalUrl = VIEWER_URL + "?file=" + encodeURIComponent(workerStreamUrl);
+                linksHtml += `      <li><a href="${finalUrl}" target="_blank" rel="noopener">${escapeHtml(ch.title)}</a></li>\n`;
+            });
+
+            generatedCode = `<!-- ${escapeHtml(citation)} - Chapter Links -->
+<style>
+.dtl-chapters { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.dtl-chapters-header { background: #f8f9fa; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-radius: 6px; transition: background 0.2s; user-select: none; }
+.dtl-chapters-header:hover { background: #f0f0f0; }
+.dtl-chapters-arrow { transition: transform 0.2s; font-size: 12px; color: #666; }
+.dtl-chapters.open .dtl-chapters-arrow { transform: rotate(90deg); }
+.dtl-chapters-citation { font-weight: 600; font-size: 15px; color: #333; }
+.dtl-chapters-list { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+.dtl-chapters.open .dtl-chapters-list { max-height: 2000px; }
+.dtl-chapters-list ul { list-style: none; padding: 12px 0 12px 28px; margin: 0; }
+.dtl-chapters-list li { padding: 8px 0; }
+.dtl-chapters-list a { color: #0061fe; text-decoration: none; font-size: 14px; }
+.dtl-chapters-list a:hover { text-decoration: underline; }
+</style>
+
+<div class="dtl-chapters">
+  <div class="dtl-chapters-header" onclick="this.parentElement.classList.toggle('open')" tabindex="0" onkeydown="if(event.key==='Enter')this.click()">
+    <span class="dtl-chapters-arrow">▶</span>
+    <span class="dtl-chapters-citation">${escapeHtml(citation)}</span>
+  </div>
+  <div class="dtl-chapters-list">
+    <ul>
+${linksHtml}    </ul>
+  </div>
+</div>`;
+
+            document.getElementById("codeOutput").textContent = generatedCode;
+            showStatus("", "success");
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function copyCode() {
-            navigator.clipboard.writeText(generatedCode).then(()=>{
-                alert("Copied!");
+            navigator.clipboard.writeText(generatedCode).then(() => {
+                const btn = document.getElementById("copyBtn");
+                btn.textContent = "Copied!";
+                btn.style.background = "#059669";
+                setTimeout(() => {
+                    btn.textContent = "Copy to Clipboard";
+                    btn.style.background = "var(--success)";
+                }, 2000);
             });
         }
     </script>
