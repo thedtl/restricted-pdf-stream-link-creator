@@ -136,8 +136,8 @@
             margin-bottom: 8px;
         }
 
-        input[type="text"],
-        input[type="password"] {
+        input,
+        input {
             width: 100%;
             padding: 12px 16px;
             font-size: 15px;
@@ -287,17 +287,29 @@
                 return;
             }
 
-            if (!/^https?:\/\/(www\.)?dropbox\.com\/.+$/i.test(url)) {
+            // 1. Simple, forgiving check for Dropbox links
+            if (!url.includes("dropbox.com") && !url.includes("dropboxusercontent.com")) {
                 showStatus("Invalid Dropbox URL", "error");
                 return;
             }
 
+            // 2. Process the URL safely
             let dropboxDirectUrl;
             try {
-                const urlObj = new URL(url);
-                urlObj.host = urlObj.host.replace("www.dropbox.com", "dl.dropboxusercontent.com");
+                let fixedUrl = url;
+                if (!fixedUrl.startsWith("http")) fixedUrl = "https://" + fixedUrl;
+                
+                const urlObj = new URL(fixedUrl);
+                
+                // Convert to the direct background-download domain
+                if (urlObj.hostname.includes("dropbox.com")) {
+                    urlObj.hostname = "dl.dropboxusercontent.com";
+                }
+                
+                // We ONLY delete 'dl' (which prompts downloading instead of viewing). 
+                // We MUST KEEP 'rlkey' and 'st' or Dropbox will block the worker from reading the PDF!
                 urlObj.searchParams.delete("dl");
-                urlObj.searchParams.delete("rlkey");
+                
                 dropboxDirectUrl = urlObj.toString();
             } catch (e) {
                 showStatus("Malformed URL", "error");
@@ -314,7 +326,7 @@
                 });
                 
                 // ---------------------------------------------------------
-                // NEW PRE-CHECK: Check for errors BEFORE giving it to PDF.js
+                // PRE-CHECK: Check for errors BEFORE giving it to PDF.js
                 // ---------------------------------------------------------
                 const checkResponse = await fetch(fetchUrl);
                 const contentType = checkResponse.headers.get("content-type") || "";
@@ -370,10 +382,10 @@
         // --- Logic for Chapters & HTML Generation ---
 
         async function extractChapters(pdf, outline, totalPages) {
-            const chapters = [];
+            const chapters =[];
             for (let i = 0; i < outline.length; i++) {
-                const item = outline[i];
-                const nextItem = outline[i + 1];
+                const item = outline;
+                const nextItem = outline;
                 
                 try {
                     let startPage = await getPageNumber(pdf, item);
@@ -406,7 +418,7 @@
                 let dest = item.dest;
                 if (typeof dest === 'string') dest = await pdf.getDestination(dest);
                 if (!dest || !Array.isArray(dest)) return null;
-                const pageIndex = await pdf.getPageIndex(dest[0]);
+                const pageIndex = await pdf.getPageIndex(dest);
                 return pageIndex + 1;
             } catch (e) {
                 return null;
