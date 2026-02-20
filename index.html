@@ -272,12 +272,20 @@
                 return;
             }
 
-            let directUrl;
+            let dropboxDirectUrl;
             try {
-                const u = new URL(url);
-                u.searchParams.set("dl","1");
-                directUrl = u.toString();
-            } catch {
+                // Convert the shared Dropbox link to a raw file URL
+                const urlObj = new URL(url);
+
+                // Change host for raw content
+                urlObj.host = urlObj.host.replace("www.dropbox.com", "dl.dropboxusercontent.com");
+
+                // Remove Dropbox UI parameters
+                urlObj.searchParams.delete("dl");
+                urlObj.searchParams.delete("rlkey");
+
+                dropboxDirectUrl = urlObj.toString();
+            } catch (e) {
                 showStatus("Malformed URL","error");
                 return;
             }
