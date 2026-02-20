@@ -307,12 +307,39 @@
             showStatus("Fetching PDF & Extracting Chapters…", "loading");
             
             try {
-                // Fetch the PDF via the Worker
+                // Prepare the URL to hit the Worker
                 const fetchUrl = WORKER_URL + "/analyze?" + new URLSearchParams({ 
                     password: pwd, 
                     dropbox: dropboxDirectUrl 
                 });
                 
+                // ---------------------------------------------------------
+                // NEW PRE-CHECK: Check for errors BEFORE giving it to PDF.js
+                // ---------------------------------------------------------
+                const checkResponse = await fetch(fetchUrl);
+                const contentType = checkResponse.headers.get("content-type") || "";
+                
+                if (!checkResponse.ok) {
+                    // Try to parse the worker's JSON error response
+                    let errorMsg = `HTTP Error ${checkResponse.status}`;
+                    try {
+                        const errJson = await checkResponse.json();
+                        if (errJson.error) errorMsg = errJson.error;
+                    } catch (e) {
+                        errorMsg = await checkResponse.text();
+                    }
+                    throw new Error(errorMsg);
+                }
+                
+                // If it succeeded but returned JSON instead of a PDF file
+                if (contentType.includes("application/json")) {
+                    const errData = await checkResponse.json();
+                    throw new Error(errData.error || "Worker returned JSON instead of a PDF file.");
+                }
+
+                // ---------------------------------------------------------
+                // It's safe! Let PDF.js do its job
+                // ---------------------------------------------------------
                 const pdf = await pdfjsLib.getDocument({ url: fetchUrl }).promise;
                 const totalPages = pdf.numPages;
                 const outline = await pdf.getOutline();
@@ -334,12 +361,13 @@
                 generateOutput(cit, chapters, pwd, dropboxDirectUrl);
 
             } catch (e) {
-                console.error(e);
-                showStatus("Error loading PDF: " + e.message, "error");
+                console.error("Analysis Error:", e);
+                // This will now print the EXACT error text on the screen
+                showStatus(e.message, "error");
             }
         }
 
-        // --- Restored Logic for Chapters & HTML Generation ---
+        // --- Logic for Chapters & HTML Generation ---
 
         async function extractChapters(pdf, outline, totalPages) {
             const chapters = [];
@@ -389,7 +417,8 @@
             let linksHtml = '';
             
             chapters.forEach((ch) => {
-                // Constructing the URL directly to the new worker endpoint
+                // Constructing the URL directly to the worker for viewing
+                // (You can change "/stream?" if your worker uses a specific path for viewing)
                 const workerStreamUrl = WORKER_URL + "?" + new URLSearchParams({
                     password: pwd,
                     dropbox: dropboxUrl,
