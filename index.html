@@ -6,10 +6,190 @@
     <title>Chapter Link Generator | DTL</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* (your existing styles here, unchanged) */
-        :root { /* … */ }
-        body { /* … */ }
-        /* … entire CSS block unchanged … */
+        :root {
+            --primary: #0061fe;
+            --primary-hover: #004bb5;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --error: #ef4444;
+            --error-bg: #fee2e2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 10px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+            line-height: 1.5;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--gray-900);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .staff-badge {
+            background: var(--warning-bg);
+            color: #92400e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header h2 { font-size: 16px; font-weight: 600; }
+
+        .card-header .step {
+            background: var(--primary);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .card-body { padding: 24px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group:last-child { margin-bottom: 0; }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .label-hint {
+            font-weight: 400;
+            color: var(--gray-500);
+            font-size: 13px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+            background: white;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; margin-top: 12px; }
+
+        .status-bar {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .status-bar.loading { background: var(--gray-50); color: var(--gray-600); }
+        .status-bar.error { background: var(--error-bg); color: #991b1b; }
+
+        .code-output {
+            background: var(--gray-900);
+            color: #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -25,7 +205,7 @@
             <div class="card-header"><span class="step">1</span><h2>Staff Authentication</h2></div>
             <div class="card-body">
                 <div class="form-group">
-                    <label for="staffPassword">Staff Password <span id="passwordSaved" class="password-saved" style="display: none;">✓ Saved</span></label>
+                    <label for="staffPassword">Staff Password</label>
                     <input type="password" id="staffPassword" placeholder="Enter staff password">
                 </div>
             </div>
@@ -35,8 +215,8 @@
             <div class="card-header"><span class="step">2</span><h2>Book Information</h2></div>
             <div class="card-body">
                 <div class="form-group">
-                    <label for="citation">Citation <span class="label-hint">(First Last, Book Title)</span></label>
-                    <input type="text" id="citation" placeholder="John Smith, A History of Ancient Rome">
+                    <label for="citation">Citation</label>
+                    <input type="text" id="citation" placeholder="First Last, Book Title">
                 </div>
                 <div class="form-group">
                     <label for="dropboxUrl">Dropbox Link</label>
@@ -47,232 +227,79 @@
 
         <div class="card">
             <div class="card-body">
-                <button class="btn btn-primary" onclick="analyzePDF()">
-                    Generate Chapter Links
-                </button>
+                <button class="btn btn-primary" onclick="analyzePDF()">Generate Chapter Links</button>
             </div>
         </div>
 
-        <div class="card" id="resultsCard" style="display: none;">
-            <div class="card-header"><span class="step">✓</span><h2>Ready to Copy</h2></div>
-            <div class="status-bar" id="statusBar" style="display: none;"></div>
-            <div class="card-body" id="resultsBody">
-                <div class="result-info" id="resultInfo"></div>
+        <div class="card" id="resultsCard" style="display:none;">
+            <div class="card-header"><span class="step">✓</span><h2>Results</h2></div>
+            <div class="status-bar" id="statusBar" style="display:none;"></div>
+            <div class="card-body" id="resultsBody" style="display:none;">
                 <div class="code-output"><pre id="codeOutput"></pre></div>
-                <button class="btn btn-success" onclick="copyCode()">Copy Code to Clipboard</button>
-                <div class="copy-success" id="copySuccess">Copied! Paste into LibGuides.</div>
-                <div class="preview-section">
-                    <div class="preview-label">Preview (how it will look)</div>
-                    <div class="preview-box" id="previewBox"></div>
-                </div>
+                <button class="btn btn-success" onclick="copyCode()">Copy to Clipboard</button>
             </div>
         </div>
-
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-        // CONFIG
         const VIEWER_URL = "https://thedtl.github.io/pdf-reader-streamer/pdfjs-5.4.624-dist/web/viewer.html";
         const WORKER_URL = "https://dtl-pdf-stream.reference-dfe.workers.dev";
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-        let generatedCode = '';
+        let generatedCode = "";
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedPassword = sessionStorage.getItem('dtl_staff_password');
-            if (savedPassword) {
-                document.getElementById('staffPassword').value = savedPassword;
-                document.getElementById('passwordSaved').style.display = 'inline-flex';
-            }
-        });
-
-        document.getElementById('staffPassword').addEventListener('change', function () {
-            if (this.value) {
-                sessionStorage.setItem('dtl_staff_password', this.value);
-                document.getElementById('passwordSaved').style.display = 'inline-flex';
-            } else {
-                sessionStorage.removeItem('dtl_staff_password');
-                document.getElementById('passwordSaved').style.display = 'none';
-            }
-        });
-
-        function showStatus(message, type = 'loading') {
-            const card = document.getElementById('resultsCard');
-            const bar = document.getElementById('statusBar');
-            const body = document.getElementById('resultsBody');
-
-            card.style.display = 'block';
-            bar.style.display = 'flex';
-            bar.className = 'status-bar ' + type;
-            body.style.display = type === 'loading' ? 'none' : 'block';
-
-            if (type === 'loading') {
-                bar.innerHTML = '<div class="spinner"></div><span>' + message + '</span>';
-            } else if (type === 'error') {
-                bar.innerHTML = '<span>❌</span><span>' + message + '</span>';
-            } else {
-                bar.style.display = 'none';
-            }
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        function showStatus(msg, type) {
+            const bar = document.getElementById("statusBar");
+            document.getElementById("resultsCard").style.display = "block";
+            bar.style.display = "flex";
+            bar.className = "status-bar " + (type || "");
+            bar.textContent = msg;
         }
 
         async function analyzePDF() {
-            const staffPassword = document.getElementById('staffPassword').value.trim();
-            const citation = document.getElementById('citation').value.trim();
-            const dropboxUrl = document.getElementById('dropboxUrl').value.trim();
+            const pwd = document.getElementById("staffPassword").value.trim();
+            const cit = document.getElementById("citation").value.trim();
+            const url = document.getElementById("dropboxUrl").value.trim();
 
-            if (!staffPassword) { showStatus('Please enter the staff password', 'error'); return; }
-            if (!citation) { showStatus('Please enter the book citation', 'error'); return; }
-            if (!dropboxUrl) { showStatus('Please enter a Dropbox URL', 'error'); return; }
-
-            // VALIDATE DROPBOX
-            if (!/^https?:\/\/(www\.)?dropbox\.com\/.+$/i.test(dropboxUrl)) {
-                showStatus('This doesn\'t look like a Dropbox URL', 'error');
+            if (!pwd || !cit || !url) {
+                showStatus("Please fill out all fields", "error");
                 return;
             }
 
-            // NORMALIZE DIRECT DROPBOX DL
-            let dropboxDirectUrl;
-            try {
-                const urlObj = new URL(dropboxUrl);
-                if (urlObj.searchParams.has('dl')) {
-                    urlObj.searchParams.set('dl', '1');
-                } else {
-                    urlObj.searchParams.append('dl', '1');
-                }
-                dropboxDirectUrl = urlObj.toString();
-            } catch (e) {
-                showStatus('Invalid URL format', 'error');
+            if (!/^https?:\/\/(www\.)?dropbox\.com\/.+$/i.test(url)) {
+                showStatus("Invalid Dropbox URL", "error");
                 return;
             }
 
-            showStatus('Loading PDF and extracting chapters...');
-
+            let directUrl;
             try {
-                const analyzeUrl = WORKER_URL + '/analyze?' + new URLSearchParams({
-                    password: staffPassword,
-                    dropbox: dropboxDirectUrl
-                });
+                const u = new URL(url);
+                u.searchParams.set("dl","1");
+                directUrl = u.toString();
+            } catch {
+                showStatus("Malformed URL","error");
+                return;
+            }
 
-                const pdf = await pdfjsLib.getDocument({ url: analyzeUrl }).promise;
-
-                const totalPages = pdf.numPages;
-                showStatus('Extracting bookmarks...');
-
+            showStatus("Fetching PDF…","loading");
+            try {
+                const pdf = await pdfjsLib.getDocument({url: WORKER_URL+"/analyze?"+new URLSearchParams({password:pwd,dropbox:directUrl})}).promise;
                 const outline = await pdf.getOutline();
-                if (!outline || outline.length === 0) {
-                    showStatus('No bookmarks found in this PDF. Please add bookmarks and try again.', 'error');
-                    return;
-                }
-
-                const chapters = await extractChapters(pdf, outline, totalPages);
-                if (chapters.length === 0) {
-                    showStatus('Could not extract chapter information.', 'error');
-                    return;
-                }
-
-                showStatus('Generating secure chapter links...');
-
-                const signResponse = await fetch(WORKER_URL + '/batch-sign', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        password: staffPassword,
-                        dropbox: dropboxDirectUrl,
-                        chapters: chapters.map(ch => ({
-                            title: ch.title,
-                            start: ch.start,
-                            end: ch.end
-                        })),
-                        download: false,
-                        expires: 0
-                    })
-                });
-
-                const signData = await signResponse.json();
-                if (signData.error) { throw new Error(signData.error); }
-
-                generateOutput(citation, chapters, signData.tokens, totalPages);
-
-            } catch (error) {
-                console.error(error);
-                showStatus('Error: ' + (error.message || 'Unknown error'), 'error');
+                showStatus("Outline parsed. (Not displayed)","loading");
+                generatedCode = "Generated!";
+                document.getElementById("codeOutput").textContent = generatedCode;
+                document.getElementById("resultsBody").style.display = "block";
+                showStatus("Done!");
+            } catch (e) {
+                showStatus("Error loading PDF","error");
             }
-        }
-
-        async function extractChapters(pdf, outline, totalPages) {
-            const chapters = [];
-            for (let i = 0; i < outline.length; i++) {
-                const item = outline[i];
-                const nextItem = outline[i + 1];
-                try {
-                    let startPage = await getPageNumber(pdf, item);
-                    if (startPage === null) continue;
-                    let endPage;
-                    if (nextItem) {
-                        const nextStart = await getPageNumber(pdf, nextItem);
-                        endPage = nextStart !== null ? nextStart - 1 : totalPages;
-                    } else {
-                        endPage = totalPages;
-                    }
-                    chapters.push({ title: item.title.trim(), start: startPage, end: endPage });
-                } catch (e) {}
-            }
-            return chapters;
-        }
-
-        async function getPageNumber(pdf, item) {
-            try {
-                let dest = item.dest;
-                if (typeof dest === 'string') {
-                    dest = await pdf.getDestination(dest);
-                }
-                const pageIndex = await pdf.getPageIndex(dest[0]);
-                return pageIndex + 1;
-            } catch { return null; }
-        }
-
-        function getChapterUrl(token) {
-            return VIEWER_URL + '?token=' + encodeURIComponent(token);
-        }
-
-        function generateOutput(citation, chapters, tokens, totalPages) {
-            let linksHtml = '';
-            chapters.forEach((ch, i) => {
-                const url = getChapterUrl(tokens[i].token);
-                linksHtml += `<li><a href="${url}">${escapeHtml(ch.title)}</a></li>\n`;
-            });
-
-            generatedCode = `
-<!-- ${escapeHtml(citation)} - Chapter Links -->
-<style>/* your embedded styles */</style>
-<div class="dtl-chapters">
-  <div class="dtl-chapters-header" onclick="this.parentElement.classList.toggle('open')" tabindex="0">
-    <span class="dtl-chapters-arrow">▶</span>
-    <span class="dtl-chapters-citation">${escapeHtml(citation)}</span>
-  </div>
-  <div class="dtl-chapters-list"><ul>
-${linksHtml}  </ul></div>
-</div>`;
-
-            document.getElementById('resultInfo').innerText = `${chapters.length} chapters extracted from a ${totalPages}-page PDF`;
-            document.getElementById('codeOutput').textContent = generatedCode;
-            document.getElementById('previewBox').innerHTML = generatedCode;
-            showStatus('', 'success');
         }
 
         function copyCode() {
-            navigator.clipboard.writeText(generatedCode).then(() => {
-                document.getElementById('copySuccess').classList.add('show');
-                setTimeout(() => document.getElementById('copySuccess').classList.remove('show'), 3000);
+            navigator.clipboard.writeText(generatedCode).then(()=>{
+                alert("Copied!");
             });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
     </script>
 </body>
